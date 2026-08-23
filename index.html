@@ -131,7 +131,7 @@ details.accordion-item .accordion-body{padding:14px}
 </head>
 <body>
 <div class="app">
-<header class="top"><div><h1>Daily Inspiration</h1><p class="subtitle">Today's Inspiration • આજની પ્રેરણા</p></div><div class="version">Daily Inspiration v2.3.2 VIP FAMILY CANDIDATE</div></header>
+<header class="top"><div><h1>Daily Inspiration</h1><p class="subtitle">Today's Inspiration</p></div><div class="version">Daily Inspiration v2.3.2 VIP FAMILY CANDIDATE</div></header>
 <nav class="tabs">
 <button class="tab active" data-screen="studio">Daily Poster</button><button class="tab" data-screen="greeting">Personal Greeting</button>
 <button class="tab" data-screen="calendar">Calendar</button>
@@ -2084,14 +2084,14 @@ function saveCleanupMode(){
 
 function showToast(message){const t=$("toast");t.textContent=message;t.classList.add("show");clearTimeout(showToast._timer);showToast._timer=setTimeout(()=>t.classList.remove("show"),1800)}
 function englishCaption(){const sig=$("signature")?$("signature").value.trim():"Dr. Atul";const sigStr=sig?`\n\n— ${sig}`:"";return `${$("occasionEn").value}\n\n${currentEnglishMessage()}${sigStr}`;}
-function gujaratiCaption(){const occ=$("occasionGu");const title=occ?occ.value:(rec&&rec.Occasion_Gujarati?rec.Occasion_Gujarati:"");const sig=$("signature")?$("signature").value.trim():"Dr. Atul";const sigStr=sig?`\n\n— ${sig}`:"";return `${title}\n\n${currentGujaratiMessage()}${sigStr}`;}
+function gujaratiCaption(){return englishCaption();}
 function bilingualCaption(){return `${englishCaption()}\n\n${gujaratiCaption()}`}
 async function copyText(text,label){try{await navigator.clipboard.writeText(text);showToast(`${label} copied`)}catch{const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();showToast(`${label} copied`)}}
 function canvasBlob(){return new Promise(resolve=>cvs.toBlob(resolve,"image/png"))}
 async function shareCurrentPoster(){
  if(generatedKey!==key())return invalidate();
  const blob=await canvasBlob();if(!blob){showToast("Unable to prepare PNG");return}
- const file=new File([blob],`${$("date").value}_${$("occasionEn").value.replace(/[^a-z0-9]+/gi,"-")}_EN-GU.png`,{type:"image/png"});
+ const file=new File([blob],`${$("date").value}_${$("occasionEn").value.replace(/[^a-z0-9]+/gi,"-")}_EN.png`,{type:"image/png"});
  const data={title:$("occasionEn").value,text:bilingualCaption(),files:[file]};
  try{
    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share(data);showToast("Share sheet opened")}
@@ -2795,6 +2795,85 @@ function gPalette(){
   if (typeof GREETING_PALETTES !== "undefined" && GREETING_PALETTES[d]) return GREETING_PALETTES[d];
   return { a: "#8E2E21", b: "#C75E22", soft: "#FFF8EA", accent: "#8E2E21", gold: "#E5B85D", ink: "#381D15" };
 }
+function dbgGreet(hypothesisId,location,message,data){
+  // #region agent log
+  fetch('http://127.0.0.1:7260/ingest/e650ad6d-f41b-4074-b68b-d81adb0789d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b77db'},body:JSON.stringify({sessionId:'5b77db',runId:'pre-fix',hypothesisId:hypothesisId,location:location,message:message,data:data,timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+}
+function gRectsOverlap(r1,r2,gap){gap=gap==null?15:gap;return!(r1.x+r1.w+gap<=r2.x||r2.x+r2.w+gap<=r1.x||r1.y+r1.h+gap<=r2.y||r2.y+r2.h+gap<=r1.y)}
+function greetingTextBoxForPhoto(photo, panel, gap) {
+  gap = gap == null ? 20 : gap;
+  const full = { x: panel.x + 40, y: panel.y + 20, w: panel.w - 80, maxBottom: panel.y + panel.h - 25, textCenterX: panel.x + panel.w / 2 };
+  if (!photo) return full;
+  const pr = { x: photo.px, y: photo.py, w: photo.pw, h: photo.ph };
+  const photoBottom = pr.y + pr.h;
+  const photoRight = pr.x + pr.w;
+  if (pr.y >= panel.y + panel.h - 30) {
+    return Object.assign({}, full, { maxBottom: Math.min(full.maxBottom, pr.y - gap) });
+  }
+  if (photoBottom <= panel.y + 30) return full;
+  const spaceLeft = pr.x - panel.x - gap;
+  const spaceRight = panel.x + panel.w - photoRight - gap;
+  if (spaceLeft >= 280 && spaceLeft >= spaceRight) {
+    const w = spaceLeft - 36;
+    return { x: panel.x + 28, y: full.y, w: w, maxBottom: full.maxBottom, textCenterX: panel.x + 28 + w / 2 };
+  }
+  if (spaceRight >= 280) {
+    const x = photoRight + gap;
+    const w = spaceRight - 20;
+    return { x: x, y: full.y, w: w, maxBottom: full.maxBottom, textCenterX: x + w / 2 };
+  }
+  if (pr.y - panel.y > 220) {
+    return Object.assign({}, full, { maxBottom: pr.y - gap });
+  }
+  return null;
+}
+function planGreetingPhotoText(design, preferredStyle, hasPhoto, panel) {
+  if (!hasPhoto || preferredStyle === "none") {
+    return { photo: null, text: greetingTextBoxForPhoto(null, panel), warning: "", styleUsed: "none" };
+  }
+  const tZone = TEMPLATE_PHOTO_ZONES[design] || TEMPLATE_PHOTO_ZONES["Executive Blue"];
+  const order = preferredStyle === "circle" ? ["circle", "small"] : (preferredStyle === "small" ? ["small", "circle"] : ["large", "small", "circle"]);
+  for (let i = 0; i < order.length; i++) {
+    const key = order[i];
+    const z = tZone[key];
+    if (!z) continue;
+    const text = greetingTextBoxForPhoto(z, panel);
+    if (text && text.w >= 260) {
+      return {
+        photo: Object.assign({}, z),
+        text: text,
+        warning: key !== preferredStyle ? "Photo size reduced so the message stays readable." : "",
+        styleUsed: key
+      };
+    }
+  }
+  return { photo: null, text: greetingTextBoxForPhoto(null, panel), warning: "Photo hidden so the message stays readable.", styleUsed: "hidden" };
+}
+function drawGreetingPhoto(photo, styleAccent, zoom, focusX, focusY) {
+  if (!photo) return;
+  const px = photo.px, py = photo.py, pw = photo.pw, ph = photo.ph;
+  const isCircle = !!photo.isCircle;
+  const radius = photo.radius;
+  gCtx.save();
+  gCtx.shadowColor = "rgba(0,0,0,.32)";
+  gCtx.shadowBlur = 18;
+  gCtx.shadowOffsetY = 8;
+  gCtx.beginPath();
+  if (isCircle) gCtx.arc(px + pw / 2, py + ph / 2, pw / 2, 0, Math.PI * 2);
+  else gCtx.roundRect(px, py, pw, ph, radius);
+  gCtx.clip();
+  gCoverDraw(activeGreetingPhoto(), px, py, pw, ph, zoom, focusY, focusX);
+  gCtx.restore();
+  gCtx.save();
+  gCtx.strokeStyle = styleAccent;
+  gCtx.lineWidth = 7;
+  gCtx.beginPath();
+  if (isCircle) gCtx.arc(px + pw / 2, py + ph / 2, pw / 2, 0, Math.PI * 2);
+  else gCtx.roundRect(px, py, pw, ph, radius);
+  gCtx.stroke();
+  gCtx.restore();
+}
 function gCoverDraw(img,x,y,w,h,zoom,focusY,focusX=0){
   const iw=img.naturalWidth||img.width;
   const ih=img.naturalHeight||img.height;
@@ -2809,14 +2888,14 @@ function gCoverDraw(img,x,y,w,h,zoom,focusY,focusX=0){
 
 const TEMPLATE_PHOTO_ZONES = {
     "VIP Family": {
-      large: { px: 615, py: 70, pw: 400, ph: 1210, radius: 24, isCircle: false },
-      small: { px: 660, py: 480, pw: 310, ph: 420, radius: 20, isCircle: false },
-      circle: { px: 635, py: 510, pw: 360, ph: 360, radius: 180, isCircle: true }
+      large: { px: 640, py: 90, pw: 330, ph: 820, radius: 22, isCircle: false },
+      small: { px: 700, py: 260, pw: 250, ph: 340, radius: 18, isCircle: false },
+      circle: { px: 700, py: 250, pw: 260, ph: 260, radius: 130, isCircle: true }
     },
     "Premium Portrait Split": {
-      large: { px: 615, py: 70, pw: 400, ph: 1210, radius: 24, isCircle: false },
-      small: { px: 660, py: 480, pw: 310, ph: 420, radius: 20, isCircle: false },
-      circle: { px: 635, py: 510, pw: 360, ph: 360, radius: 180, isCircle: true }
+      large: { px: 640, py: 90, pw: 330, ph: 820, radius: 22, isCircle: false },
+      small: { px: 700, py: 260, pw: 250, ph: 340, radius: 18, isCircle: false },
+      circle: { px: 700, py: 250, pw: 260, ph: 260, radius: 130, isCircle: true }
     },
     "Executive Blue": {
       large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
@@ -3247,6 +3326,35 @@ function renderPremiumPortraitSplit(title, message, date, signature, style) {
   gCtx.stroke();
   gCtx.restore();
 
+  const photoStyle = $("gPhotoStyle").value;
+  const renderPhoto = activeGreetingPhoto();
+  const tZone = TEMPLATE_PHOTO_ZONES["VIP Family"];
+  const zConfig = tZone[photoStyle] ? { ...tZone[photoStyle] } : { ...tZone["large"] };
+  let px = zConfig.px, py = zConfig.py, pw = zConfig.pw, ph = zConfig.ph, radius = zConfig.radius, isCircle = !!zConfig.isCircle;
+  if (renderPhoto && photoStyle !== "none") {
+    const zoom = Number($("gPhotoZoom").value);
+    const focusX = Number($("gPhotoFocusX").value);
+    const focusY = Number($("gPhotoFocus").value);
+    drawGreetingPhoto({ px: px, py: py, pw: pw, ph: ph, radius: radius, isCircle: isCircle }, "#D4AF37", zoom, focusX, focusY);
+    // #region agent log
+    dbgGreet('H3','App/index.html:renderPremiumPortraitSplit:photo','VIP/split photo reserved and painted before text',{path:'renderPremiumPortraitSplit',paintOrder:['photo','text'],photoStyle:photoStyle,photoRect:{x:px,y:py,w:pw,h:ph},textPanel:{x:leftPanelX,y:70,w:leftPanelWidth,h:1210},overlaps:gRectsOverlap({x:px,y:py,w:pw,h:ph},{x:leftPanelX,y:70,w:leftPanelWidth,h:1210})});
+    // #endregion
+  } else if (photoStyle !== "none") {
+    gCtx.save();
+    gCtx.fillStyle = "rgba(12, 22, 38, 0.6)";
+    gCtx.strokeStyle = "rgba(212, 175, 55, 0.4)";
+    gCtx.lineWidth = 3;
+    gCtx.beginPath();
+    gCtx.roundRect(px, py, pw, ph, radius);
+    gCtx.fill();
+    gCtx.stroke();
+    gCtx.fillStyle = "rgba(212, 175, 55, 0.6)";
+    gCtx.font = "700 22px system-ui";
+    gCtx.textAlign = "center";
+    gCtx.fillText("Recipient Photo", px + pw / 2, py + ph / 2);
+    gCtx.restore();
+  }
+
   if (date) {
     gCtx.textAlign = "center";
     gCtx.fillStyle = "#D4AF37";
@@ -3317,60 +3425,9 @@ function renderPremiumPortraitSplit(title, message, date, signature, style) {
   gCtx.fillStyle = "#F5E6C8";
   gCtx.font = "700 34px Georgia";
   gCtx.fillText(signature, centerX, sigY);
-
-  const photoStyle = $("gPhotoStyle").value;
-  const renderPhoto = activeGreetingPhoto();
-
-  const tZone = TEMPLATE_PHOTO_ZONES["VIP Family"];
-  const zConfig = tZone[photoStyle] ? { ...tZone[photoStyle] } : { ...tZone["large"] };
-
-  let px = zConfig.px;
-  let py = zConfig.py;
-  let pw = zConfig.pw;
-  let ph = zConfig.ph;
-  let radius = zConfig.radius;
-  let isCircle = !!zConfig.isCircle;
-
-  if (renderPhoto && photoStyle !== "none") {
-    const zoom = Number($("gPhotoZoom").value);
-    const focusX = Number($("gPhotoFocusX").value);
-    const focusY = Number($("gPhotoFocus").value);
-
-    gCtx.save();
-    gCtx.shadowColor = "rgba(0,0,0,.5)";
-    gCtx.shadowBlur = 24;
-    gCtx.shadowOffsetY = 10;
-    gCtx.beginPath();
-    if (isCircle) gCtx.arc(px + pw / 2, py + ph / 2, pw / 2, 0, Math.PI * 2);
-    else gCtx.roundRect(px, py, pw, ph, radius);
-    gCtx.clip();
-    gCoverDraw(renderPhoto, px, py, pw, ph, zoom, focusY, focusX);
-    gCtx.restore();
-
-    gCtx.save();
-    gCtx.strokeStyle = "#D4AF37";
-    gCtx.lineWidth = 6;
-    gCtx.beginPath();
-    if (isCircle) gCtx.arc(px + pw / 2, py + ph / 2, pw / 2, 0, Math.PI * 2);
-    else gCtx.roundRect(px, py, pw, ph, radius);
-    gCtx.stroke();
-    gCtx.restore();
-  } else {
-    gCtx.save();
-    gCtx.fillStyle = "rgba(12, 22, 38, 0.6)";
-    gCtx.strokeStyle = "rgba(212, 175, 55, 0.4)";
-    gCtx.lineWidth = 3;
-    gCtx.beginPath();
-    gCtx.roundRect(px, py, pw, ph, radius);
-    gCtx.fill();
-    gCtx.stroke();
-
-    gCtx.fillStyle = "rgba(212, 175, 55, 0.6)";
-    gCtx.font = "700 22px system-ui";
-    gCtx.textAlign = "center";
-    gCtx.fillText("Recipient Photo", px + pw / 2, py + ph / 2);
-    gCtx.restore();
-  }
+  // #region agent log
+  dbgGreet('H3','App/index.html:renderPremiumPortraitSplit:text','VIP/split text painted after reserved photo',{path:'renderPremiumPortraitSplit',paintOrder:['photo','text'],msgY:my,msgBottomY:msgBottomY,sigY:sigY,centerX:centerX,msgLen:(message||'').length});
+  // #endregion
 
   drawPremiumSplitDecorations(gCtx, $("gOccasion").value);
 
@@ -3425,31 +3482,51 @@ function gRender(){
   gCtx.stroke();
   gCtx.restore();
 
+  const photoStyle=$("gPhotoStyle").value;
+  const renderPhoto=activeGreetingPhoto();
+  const hasPhoto=!!(renderPhoto&&photoStyle!=="none");
+  const panel={x:70,y:55,w:940,h:895};
+  const plan=planGreetingPhotoText(gDesign,photoStyle,hasPhoto,panel);
+  const textBox=plan.text;
+  const textCenterX=textBox.textCenterX;
+  const titleWidth=Math.max(240,Math.min(820,textBox.w));
+
+  if(hasPhoto&&plan.photo){
+    drawGreetingPhoto(plan.photo,style.accent,Number($("gPhotoZoom").value),Number($("gPhotoFocusX").value),Number($("gPhotoFocus").value));
+    // #region agent log
+    dbgGreet('H1','App/index.html:gRender:photo','gRender photo painted before text',{path:'gRender',runId:'post-fix',design:gDesign,photoStyle:photoStyle,styleUsed:plan.styleUsed,warning:plan.warning,photoRect:{x:plan.photo.px,y:plan.photo.py,w:plan.photo.pw,h:plan.photo.ph},textBox:textBox,paintOrder:['photo','text']});
+    // #endregion
+  }
+
+  gCtx.save();
+  gCtx.beginPath();
+  gCtx.rect(textBox.x - 6, 55, textBox.w + 12, Math.max(80, textBox.maxBottom - 50));
+  gCtx.clip();
+
   if(date){
     gCtx.textAlign="center";
     gCtx.fillStyle=style.accent;
     gCtx.font="700 25px system-ui";
-    gCtx.fillText(new Date(date+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}),540,110);
+    gCtx.fillText(new Date(date+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}),textCenterX,110);
   }
 
-  const titleFit = fit(title, 820, 3, 76, 38, "Georgia");
+  const titleFit = fit(title, titleWidth, 3, 76, 38, "Georgia");
   gCtx.textAlign = "center";
   gCtx.fillStyle = style.accent;
   gCtx.font = titleFit.font;
   let titleY = 205;
-  titleFit.lines.forEach((line, i) => gCtx.fillText(line, 540, titleY + i * titleFit.size * 1.08));
+  titleFit.lines.forEach((line, i) => gCtx.fillText(line, textCenterX, titleY + i * titleFit.size * 1.08));
 
   const dividerY = titleY + (titleFit.lines.length - 1) * titleFit.size * 1.08 + titleFit.size + 25;
   gCtx.strokeStyle = style.accent;
   gCtx.lineWidth = 3;
   gCtx.beginPath();
-  gCtx.moveTo(260, dividerY);
-  gCtx.lineTo(820, dividerY);
+  gCtx.moveTo(textCenterX - Math.min(280, textBox.w / 2 - 20), dividerY);
+  gCtx.lineTo(textCenterX + Math.min(280, textBox.w / 2 - 20), dividerY);
   gCtx.stroke();
 
-  // Dynamic Message & Signature Layout Calculation
-  const maxBottomBound = 930;
-  let msgFit = fit(message, 800, 8, 44, 24, "Georgia");
+  const maxBottomBound = textBox.maxBottom;
+  let msgFit = fit(message, textBox.w, 8, 44, 24, "Georgia");
   let lineSpacing = 1.30;
   let my = dividerY + 45;
   
@@ -3464,7 +3541,7 @@ function gRender(){
   if (totalBottom > maxBottomBound) {
     let currentMaxSize = 40;
     while (totalBottom > maxBottomBound && currentMaxSize >= 24) {
-      msgFit = fit(message, 800, 8, currentMaxSize, 22, "Georgia");
+      msgFit = fit(message, textBox.w, 8, currentMaxSize, 22, "Georgia");
       lineSpacing = currentMaxSize <= 28 ? 1.22 : 1.26;
       msgBottomY = my + (msgFit.lines.length - 1) * msgFit.size * lineSpacing;
       warmY = msgBottomY + warmGap;
@@ -3484,106 +3561,32 @@ function gRender(){
   gCtx.fillStyle = style.ink;
   gCtx.font = msgFit.font;
   gCtx.textAlign = "center";
-  msgFit.lines.forEach((line, i) => gCtx.fillText(line, 540, my + i * msgFit.size * lineSpacing));
+  msgFit.lines.forEach((line, i) => gCtx.fillText(line, textCenterX, my + i * msgFit.size * lineSpacing));
 
   gCtx.fillStyle = style.ink;
   gCtx.textAlign = "center";
   gCtx.font = "italic 30px Georgia";
-  gCtx.fillText("Warm regards,", 540, warmY);
+  gCtx.fillText("Warm regards,", textCenterX, warmY);
 
   gCtx.font = "700 36px Georgia";
-  gCtx.fillText(signature, 540, sigY);
-
-  // Template-aware photo safe zones
-  // Photo safe zones resolve from the single global TEMPLATE_PHOTO_ZONES table.
-
-  // User-selectable photo presentation (Template-aware with layout collision protection).
-  const photoStyle=$("gPhotoStyle").value;
-  const renderPhoto=activeGreetingPhoto();
-  if(renderPhoto&&photoStyle!=="none"){
-    const zoom=Number($("gPhotoZoom").value);
-    const focusX=Number($("gPhotoFocusX").value);
-    const focusY=Number($("gPhotoFocus").value);
-
-    const tZone = TEMPLATE_PHOTO_ZONES[gDesign] || TEMPLATE_PHOTO_ZONES["Executive Blue"];
-    const zConfig = tZone[photoStyle] ? { ...tZone[photoStyle] } : { ...tZone["large"] };
-
-    let px = zConfig.px;
-    let py = zConfig.py;
-    let pw = zConfig.pw;
-    let ph = zConfig.ph;
-    let radius = zConfig.radius;
-    let isCircle = !!zConfig.isCircle;
-
-    // Collision validation against signature and message text regions
-    gCtx.save();
-    gCtx.font = "700 36px Georgia";
-    const sigTextWidth = gCtx.measureText(signature).width;
-    gCtx.restore();
-
-    const sigBox = { x: 540 - sigTextWidth / 2 - 15, y: warmY - 20, w: sigTextWidth + 30, h: sigY - warmY + 50 };
-    const msgBox = { x: 140, y: my, w: 800, h: msgBottomY - my + 30 };
-
-    function checkCollision(rx, ry, rw, rh) {
-      function rectsOverlap(r1, r2, gap = 15) {
-        return !(
-          r1.x + r1.w + gap <= r2.x ||
-          r2.x + r2.w + gap <= r1.x ||
-          r1.y + r1.h + gap <= r2.y ||
-          r2.y + r2.h + gap <= r1.y
-        );
-      }
-      const photoRect = { x: rx, y: ry, w: rw, h: rh };
-      return rectsOverlap(photoRect, sigBox) || rectsOverlap(photoRect, msgBox);
-    }
-
-    if (checkCollision(px, py, pw, ph)) {
-      const smallConfig = tZone["small"];
-      if (smallConfig && !checkCollision(smallConfig.px, smallConfig.py, smallConfig.pw, smallConfig.ph)) {
-        px = smallConfig.px;
-        py = smallConfig.py;
-        pw = smallConfig.pw;
-        ph = smallConfig.ph;
-        radius = smallConfig.radius;
-        if (photoStyle === "circle") {
-          isCircle = true;
-          radius = Math.min(pw, ph) / 2;
-        }
-      } else {
-        pw = Math.round(pw * 0.8);
-        ph = Math.round(ph * 0.8);
-        if (isCircle) radius = pw / 2;
-        if (checkCollision(px, py, pw, ph)) {
-          py = Math.min(1350 - ph - 20, py + 30);
-        }
-      }
-    }
-
-    gCtx.save();
-    gCtx.shadowColor="rgba(0,0,0,.32)";
-    gCtx.shadowBlur=18;
-    gCtx.shadowOffsetY=8;
-    gCtx.beginPath();
-    if(isCircle)gCtx.arc(px+pw/2,py+ph/2,pw/2,0,Math.PI*2);
-    else gCtx.roundRect(px,py,pw,ph,radius);
-    gCtx.clip();
-    gCoverDraw(renderPhoto,px,py,pw,ph,zoom,focusY,focusX);
-    gCtx.restore();
-
-    gCtx.save();
-    gCtx.strokeStyle=style.accent;
-    gCtx.lineWidth=7;
-    gCtx.beginPath();
-    if(isCircle)gCtx.arc(px+pw/2,py+ph/2,pw/2,0,Math.PI*2);
-    else gCtx.roundRect(px,py,pw,ph,radius);
-    gCtx.stroke();
-    gCtx.restore();
-  }
+  gCtx.fillText(signature, textCenterX, sigY);
+  gCtx.restore();
+  // #region agent log
+  (function(){
+    gCtx.save(); gCtx.font="700 36px Georgia";
+    const sigW=gCtx.measureText(signature).width; gCtx.restore();
+    const msgBox={x:textBox.x,y:my,w:textBox.w,h:Math.max(20,msgBottomY-my+30)};
+    const sigBox={x:textCenterX-sigW/2-15,y:warmY-20,w:sigW+30,h:sigY-warmY+50};
+    const photoRect=plan.photo?{x:plan.photo.px,y:plan.photo.py,w:plan.photo.pw,h:plan.photo.ph}:null;
+    const stillHits=!!(photoRect&&(gRectsOverlap(photoRect,msgBox)||gRectsOverlap(photoRect,sigBox)));
+    dbgGreet(stillHits?'H2':'H4','App/index.html:gRender:text','gRender text painted after reserved photo',{path:'gRender',runId:'post-fix',design:gDesign,photoStyle:photoStyle,styleUsed:plan.styleUsed,warning:plan.warning,paintOrder:['photo','text'],stillHits:stillHits,photoRect:photoRect,msgBox:msgBox,sigBox:sigBox,msgLen:(message||'').length});
+  })();
+  // #endregion
 
   gGeneratedKey=gKey();
   $("gShare").disabled=false;
   $("gDownload").disabled=false;
-  $("gStatus").textContent=`Greeting generated • ${gDesign} • 1080 × 1350`;
+  $("gStatus").textContent=plan.warning?`Greeting generated • ${gDesign} • ${plan.warning}`:`Greeting generated • ${gDesign} • 1080 × 1350`;
   updateMobileLivePreview();
 }
 function gCaption(){const sig=$("signature")?$("signature").value.trim():"Dr. Atul";const sigStr=sig?`\n\n— ${sig}`:"";return `${$("gTitleEn").value}\n\n${$("gMessageEn").value}${sigStr}`;}
