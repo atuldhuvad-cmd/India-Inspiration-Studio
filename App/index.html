@@ -365,7 +365,7 @@ if ('serviceWorker' in navigator) {
 const $=id=>document.getElementById(id),cvs=$("poster"),ctx=cvs.getContext("2d");
 const POSTER_W = 1080, POSTER_H = 1920;
 if (cvs) { cvs.width = POSTER_W; cvs.height = POSTER_H; }
-let rec=null,palette="Festival Gold",generatedKey="",artworkImage=null,artworkId="none",qaReport=null,_rendering=false;
+let rec=null,palette="Festival Gold",generatedKey="",artworkImage=null,artworkId="none",qaReport=null,_rendering=false,_renderQueued=false;
 function onEl(id,ev,fn){const el=$(id);if(!el)return false;el.addEventListener(ev,fn);return true}
 function resolveVisibleStyle(name){return STYLES.includes(name)?name:"Auto Theme"}
 function syncStyleChips(){
@@ -982,7 +982,9 @@ function generatedHero(p,x,y,w,h){
   } else if (name.includes("nature") || name.includes("green") || category.includes("nature")) {
     hg.addColorStop(0, "#134E5E"); hg.addColorStop(1, "#71B280");
   } else {
-    hg.addColorStop(0, p.b); hg.addColorStop(0.5, p.accent); hg.addColorStop(1, p.b);
+    const base = (p && p.b) || "#182448";
+    const accent = (p && (p.accent || p.gold)) || "#C5A45D";
+    hg.addColorStop(0, base); hg.addColorStop(0.5, accent); hg.addColorStop(1, base);
   }
   ctx.fillStyle = hg;
   ctx.fillRect(-w/2, -h/2, w, h);
@@ -1321,7 +1323,7 @@ function renderHeroFocus(p_old) {
   // Photo slightly taller in pixels than 4:5, but ~34% so cream/message stays primary
   const imgH = isLong ? 640 : 680;
   const crop = compositionCrop();
-  const p = { b: cream, a: "#FFE8C8", soft: cream };
+  const p = { b: cream, a: "#FFE8C8", soft: cream, accent: coral };
   const serif = '"Playfair Display",Georgia,serif';
 
   ctx.fillStyle = cream;
@@ -1456,7 +1458,7 @@ function renderSacredArch(p_old) {
   const T = TYPO_PRESETS.D;
   const dt = editorialDate();
   const quote = currentEnglishMessage();
-  const p = { b: indigo, a: "#12182E", soft: ivory, gold };
+  const p = { b: indigo, a: "#12182E", soft: ivory, gold, accent: gold };
 
   ctx.fillStyle = indigo;
   ctx.fillRect(0, 0, POSTER_W, POSTER_H);
@@ -1888,7 +1890,7 @@ function renderNeonTheme(p_old) {
 }
 
 function render() {
-  if(_rendering) return;
+  if(_rendering){ _renderQueued=true; return; }
   _rendering=true;
   try {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1944,12 +1946,16 @@ function render() {
   syncStyleChips();
   } finally {
     _rendering = false;
+    if (_renderQueued) {
+      _renderQueued = false;
+      requestAnimationFrame(function(){ render(); });
+    }
   }
 }
 
 function customMap(){return store.get("iis-custom-messages",{})}
 function currentCustom(){return customMap()[rec.Date]||null}
-function applyCustomIfAny(){const c=currentCustom();if(c){$("messageEn").value=c.en;if($("messageGu"))$("messageGu").value=c.gu||""}updateEditorState()}
+function applyCustomIfAny(){const c=currentCustom();const en=c&&String(c.en||"").trim();if(en){$("messageEn").value=c.en;if($("messageGu"))$("messageGu").value=c.gu||""}updateEditorState()}
 function updateEditorState(){const c=currentCustom();const saved=c&&$("messageEn").value===c.en;if($("editDot"))$("editDot").classList.toggle("custom",Boolean(c));if($("editStateText"))$("editStateText").textContent=c?(saved?"Custom message saved":"Custom message exists — unsaved changes"):"Original dataset message"}
 function lineCount(text){return text?text.split(/\r?\n/).length:0}
 function estimatedFit(text,lang){
@@ -1969,7 +1975,7 @@ function updateEditorMetrics(){
   updateEditorState();
 }
 function saveCustomMessages(){const en=$("messageEn").value.trim();if(!en){$("savedNotice").textContent="English message is required.";return}const gu=$("messageGu")?$("messageGu").value.trim():"";const all=customMap();all[rec.Date]={en,gu,savedAt:new Date().toISOString()};store.set("iis-custom-messages",all);$("savedNotice").textContent="Saved";updateEditorMetrics();invalidate()}
-function resetEnglish(){$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");updateEditorMetrics();invalidate()}
+function resetEnglish(){$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");updateEditorMetrics();invalidate();if(rec)render()}
 function resetGujarati(){if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");updateEditorMetrics();invalidate()}
 function restoreOriginal(){const all=customMap();delete all[rec.Date];store.set("iis-custom-messages",all);$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");$("savedNotice").textContent="Original restored";updateEditorMetrics();invalidate();render()}
 
