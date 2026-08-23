@@ -1,4 +1,4 @@
-const CACHE = "daily-inspiration-v2-3-2-greeting-photo-layout-v1";
+const CACHE = "daily-inspiration-v2-3-2-vip-family-balance-v1";
 const FILES = [
   "./",
   "./index.html",

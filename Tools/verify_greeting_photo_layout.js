@@ -107,7 +107,9 @@ function startServer() {
       $("gDate").value = "2024-08-23";
       if ($("signature")) $("signature").value = "Dr. Atul";
       gRender();
-      const panel = { x: 70, y: 55, w: 940, h: 895 };
+      const panel = (design === "VIP Family" || design === "Premium Portrait Split")
+        ? { x: 55, y: 45, w: 970, h: 1260 }
+        : { x: 70, y: 55, w: 940, h: 895 };
       const plan = planGreetingPhotoText(design, style, true, panel);
       const photoRect = plan.photo ? { x: plan.photo.px, y: plan.photo.py, w: plan.photo.pw, h: plan.photo.ph } : null;
       const msgBox = { x: plan.text.x, y: plan.text.y, w: plan.text.w, h: Math.max(40, plan.text.maxBottom - plan.text.y) };
@@ -116,6 +118,8 @@ function startServer() {
       const cx = c.getContext("2d");
       const left = cx.getImageData(220, 430, 1, 1).data;
       const right = photoRect ? cx.getImageData(Math.round(photoRect.x + photoRect.w / 2), Math.round(photoRect.y + photoRect.h / 2), 1, 1).data : null;
+      const lower = cx.getImageData(540, 1180, 1, 1).data;
+      const lowerRight = cx.getImageData(810, 1180, 1, 1).data;
       return {
         design, style,
         planner: typeof planGreetingPhotoText === "function",
@@ -127,20 +131,29 @@ function startServer() {
         status: (document.getElementById("gStatus") || {}).textContent,
         canvas: { w: c.width, h: c.height },
         leftSample: [left[0], left[1], left[2]],
-        rightSample: right ? [right[0], right[1], right[2]] : null
+        rightSample: right ? [right[0], right[1], right[2]] : null,
+        lowerSample: [lower[0], lower[1], lower[2]],
+        lowerRightSample: [lowerRight[0], lowerRight[1], lowerRight[2]],
+        poster: { w: poster.width, h: poster.height }
       };
     }, [t.design, t.style, t.message]);
 
     const issues = [];
     if (!info.planner) issues.push("planner missing");
     if (info.canvas.w !== 1080 || info.canvas.h !== 1350) issues.push("canvas " + info.canvas.w + "x" + info.canvas.h);
+    if (info.poster.w !== 1080 || info.poster.h !== 1920) issues.push("daily poster " + info.poster.w + "x" + info.poster.h);
     if (info.overlap) issues.push("text box overlaps photo");
     if (!info.photoRect) issues.push("photo hidden");
+    if (t.design === "VIP Family") {
+      const [r, g, b] = info.lowerSample;
+      const peachEmpty = r > 160 && g > 120 && b < 140;
+      if (peachEmpty) issues.push("lower third still empty peach");
+    }
     const label = (t.design.replace(/\s+/g, "_") + "_" + t.style + "_" + (t.message === SHORT ? "short" : "long")).toLowerCase();
     const png = await page.evaluate(() => document.getElementById("gPoster").toDataURL("image/png"));
     fs.writeFileSync(path.join(SHOTS, "greet_" + label + ".png"), Buffer.from(png.split(",")[1], "base64"));
     console.log("\n--- " + label + " ---");
-    console.log(JSON.stringify({ styleUsed: info.styleUsed, warning: info.warning, overlap: info.overlap, textBox: info.textBox, photoRect: info.photoRect, status: info.status, leftSample: info.leftSample, rightSample: info.rightSample }, null, 2));
+    console.log(JSON.stringify({ styleUsed: info.styleUsed, warning: info.warning, overlap: info.overlap, textBox: info.textBox, photoRect: info.photoRect, status: info.status, leftSample: info.leftSample, rightSample: info.rightSample, lowerSample: info.lowerSample, lowerRightSample: info.lowerRightSample, poster: info.poster }, null, 2));
     console.log(issues.length ? "FAIL " + issues.join("; ") : "PASS");
     results.push({ label, issues, info });
   }

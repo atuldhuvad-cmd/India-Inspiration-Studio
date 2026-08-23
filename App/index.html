@@ -2888,14 +2888,14 @@ function gCoverDraw(img,x,y,w,h,zoom,focusY,focusX=0){
 
 const TEMPLATE_PHOTO_ZONES = {
     "VIP Family": {
-      large: { px: 640, py: 90, pw: 330, ph: 820, radius: 22, isCircle: false },
-      small: { px: 700, py: 260, pw: 250, ph: 340, radius: 18, isCircle: false },
-      circle: { px: 700, py: 250, pw: 260, ph: 260, radius: 130, isCircle: true }
+      large: { px: 640, py: 80, pw: 350, ph: 1185, radius: 22, isCircle: false },
+      small: { px: 705, py: 420, pw: 260, ph: 380, radius: 18, isCircle: false },
+      circle: { px: 700, py: 440, pw: 280, ph: 280, radius: 140, isCircle: true }
     },
     "Premium Portrait Split": {
-      large: { px: 640, py: 90, pw: 330, ph: 820, radius: 22, isCircle: false },
-      small: { px: 700, py: 260, pw: 250, ph: 340, radius: 18, isCircle: false },
-      circle: { px: 700, py: 250, pw: 260, ph: 260, radius: 130, isCircle: true }
+      large: { px: 640, py: 80, pw: 350, ph: 1185, radius: 22, isCircle: false },
+      small: { px: 705, py: 420, pw: 260, ph: 380, radius: 18, isCircle: false },
+      circle: { px: 700, py: 440, pw: 280, ph: 280, radius: 140, isCircle: true }
     },
     "Executive Blue": {
       large: { px: 80, py: 960, pw: 260, ph: 330, radius: 26, isCircle: false },
@@ -3461,6 +3461,8 @@ function gRender(){
   const message=$("gMessageEn").value.trim();
   const date=$("gDate").value;
   const signature=$("signature")?$("signature").value.trim():"Dr. Atul";
+  const isVipFamily = gDesign === "VIP Family" || gDesign === "Premium Portrait Split";
+
   gCtx.clearRect(0,0,1080,1350);
 
   if(!drawCanvaTemplate(gDesign)){
@@ -3470,11 +3472,14 @@ function gRender(){
   }
 
   // Cover the static sample text from Canva exports while retaining the approved artwork.
+  const panel = isVipFamily
+    ? { x: 55, y: 45, w: 970, h: 1260 }
+    : { x: 70, y: 55, w: 940, h: 895 };
   gCtx.save();
   gCtx.globalAlpha=.96;
   gCtx.fillStyle=style.panel;
   gCtx.beginPath();
-  gCtx.roundRect(70,55,940,895,42);
+  gCtx.roundRect(panel.x, panel.y, panel.w, panel.h, isVipFamily ? 36 : 42);
   gCtx.fill();
   gCtx.globalAlpha=1;
   gCtx.strokeStyle=style.accent;
@@ -3485,7 +3490,6 @@ function gRender(){
   const photoStyle=$("gPhotoStyle").value;
   const renderPhoto=activeGreetingPhoto();
   const hasPhoto=!!(renderPhoto&&photoStyle!=="none");
-  const panel={x:70,y:55,w:940,h:895};
   const plan=planGreetingPhotoText(gDesign,photoStyle,hasPhoto,panel);
   const textBox=plan.text;
   const textCenterX=textBox.textCenterX;
@@ -3500,7 +3504,7 @@ function gRender(){
 
   gCtx.save();
   gCtx.beginPath();
-  gCtx.rect(textBox.x - 6, 55, textBox.w + 12, Math.max(80, textBox.maxBottom - 50));
+  gCtx.rect(textBox.x - 6, panel.y, textBox.w + 12, Math.max(80, textBox.maxBottom - panel.y));
   gCtx.clip();
 
   if(date){
@@ -3551,7 +3555,7 @@ function gRender(){
     }
   } else if (maxBottomBound - totalBottom > 60) {
     const extraSpace = maxBottomBound - totalBottom;
-    const shift = Math.min(30, extraSpace / 2);
+    const shift = isVipFamily ? Math.min(200, Math.round(extraSpace * 0.42)) : Math.min(30, extraSpace / 2);
     my += shift;
     msgBottomY += shift;
     warmY += shift;
