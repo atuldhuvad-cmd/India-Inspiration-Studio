@@ -108,7 +108,7 @@ function startServer() {
       if ($("signature")) $("signature").value = "Dr. Atul";
       gRender();
       const panel = (design === "VIP Family" || design === "Premium Portrait Split")
-        ? { x: 55, y: 45, w: 970, h: 1260 }
+        ? { x: 48, y: 48, w: 984, h: 1254 }
         : { x: 70, y: 55, w: 940, h: 895 };
       const plan = planGreetingPhotoText(design, style, true, panel);
       const photoRect = plan.photo ? { x: plan.photo.px, y: plan.photo.py, w: plan.photo.pw, h: plan.photo.ph } : null;
@@ -148,12 +148,19 @@ function startServer() {
       const [r, g, b] = info.lowerSample;
       const peachEmpty = r > 160 && g > 120 && b < 140;
       if (peachEmpty) issues.push("lower third still empty peach");
+      const corner = await page.evaluate(() => {
+        const d = document.getElementById("gPoster").getContext("2d").getImageData(8, 8, 1, 1).data;
+        return [d[0], d[1], d[2]];
+      });
+      info.cornerSample = corner;
+      const peachCorner = corner[0] > 160 && corner[1] > 110 && corner[2] < 150;
+      if (peachCorner) issues.push("peach outer frame still present");
     }
     const label = (t.design.replace(/\s+/g, "_") + "_" + t.style + "_" + (t.message === SHORT ? "short" : "long")).toLowerCase();
     const png = await page.evaluate(() => document.getElementById("gPoster").toDataURL("image/png"));
     fs.writeFileSync(path.join(SHOTS, "greet_" + label + ".png"), Buffer.from(png.split(",")[1], "base64"));
     console.log("\n--- " + label + " ---");
-    console.log(JSON.stringify({ styleUsed: info.styleUsed, warning: info.warning, overlap: info.overlap, textBox: info.textBox, photoRect: info.photoRect, status: info.status, leftSample: info.leftSample, rightSample: info.rightSample, lowerSample: info.lowerSample, lowerRightSample: info.lowerRightSample, poster: info.poster }, null, 2));
+    console.log(JSON.stringify({ styleUsed: info.styleUsed, warning: info.warning, overlap: info.overlap, textBox: info.textBox, photoRect: info.photoRect, status: info.status, leftSample: info.leftSample, rightSample: info.rightSample, lowerSample: info.lowerSample, lowerRightSample: info.lowerRightSample, cornerSample: info.cornerSample, poster: info.poster }, null, 2));
     console.log(issues.length ? "FAIL " + issues.join("; ") : "PASS");
     results.push({ label, issues, info });
   }

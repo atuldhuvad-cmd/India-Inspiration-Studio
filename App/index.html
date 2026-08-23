@@ -3465,27 +3465,43 @@ function gRender(){
 
   gCtx.clearRect(0,0,1080,1350);
 
-  if(!drawCanvaTemplate(gDesign)){
+  if (isVipFamily) {
+    const vipBg = gCtx.createLinearGradient(0, 0, 1080, 1350);
+    vipBg.addColorStop(0, "#0A1120");
+    vipBg.addColorStop(0.5, "#101D32");
+    vipBg.addColorStop(1, "#070D18");
+    gCtx.fillStyle = vipBg;
+    gCtx.fillRect(0, 0, 1080, 1350);
+    gCtx.save();
+    gCtx.strokeStyle = style.accent;
+    gCtx.lineWidth = 4;
+    gCtx.strokeRect(28, 28, 1024, 1294);
+    gCtx.strokeStyle = "rgba(212, 175, 55, 0.32)";
+    gCtx.lineWidth = 1.5;
+    gCtx.strokeRect(40, 40, 1000, 1270);
+    gCtx.restore();
+  } else if (!drawCanvaTemplate(gDesign)) {
     const bg=gCtx.createLinearGradient(0,0,1080,1350);
     bg.addColorStop(0,p.a);bg.addColorStop(.52,p.soft);bg.addColorStop(1,p.b);
     gCtx.fillStyle=bg;gCtx.fillRect(0,0,1080,1350);
   }
 
-  // Cover the static sample text from Canva exports while retaining the approved artwork.
   const panel = isVipFamily
-    ? { x: 55, y: 45, w: 970, h: 1260 }
+    ? { x: 48, y: 48, w: 984, h: 1254 }
     : { x: 70, y: 55, w: 940, h: 895 };
-  gCtx.save();
-  gCtx.globalAlpha=.96;
-  gCtx.fillStyle=style.panel;
-  gCtx.beginPath();
-  gCtx.roundRect(panel.x, panel.y, panel.w, panel.h, isVipFamily ? 36 : 42);
-  gCtx.fill();
-  gCtx.globalAlpha=1;
-  gCtx.strokeStyle=style.accent;
-  gCtx.lineWidth=4;
-  gCtx.stroke();
-  gCtx.restore();
+  if (!isVipFamily) {
+    gCtx.save();
+    gCtx.globalAlpha=.96;
+    gCtx.fillStyle=style.panel;
+    gCtx.beginPath();
+    gCtx.roundRect(panel.x, panel.y, panel.w, panel.h, 42);
+    gCtx.fill();
+    gCtx.globalAlpha=1;
+    gCtx.strokeStyle=style.accent;
+    gCtx.lineWidth=4;
+    gCtx.stroke();
+    gCtx.restore();
+  }
 
   const photoStyle=$("gPhotoStyle").value;
   const renderPhoto=activeGreetingPhoto();
