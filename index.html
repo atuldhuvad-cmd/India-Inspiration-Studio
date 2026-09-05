@@ -132,7 +132,7 @@ details.accordion-item .accordion-body{padding:14px}
 <body>
 <div class="app">
 <header class="top"><div><h1>Daily Inspiration</h1><p class="subtitle">Today's Inspiration</p></div><div class="version">India Inspiration Studio — Daily Inspiration</div></header>
-<style>/* Independent Daily Poster deployment navigation. */ .tab[data-screen="greeting"]{display:none}</style><nav class="tabs">
+<style>/* Independent Daily Poster deployment navigation. */ .tab[data-screen="greeting"],.tab[data-screen="contacts"],#greeting,#contacts{display:none!important}</style><nav class="tabs">
 <button class="tab active" data-screen="studio">Daily Poster</button><button class="tab" data-screen="greeting">Personal Greeting</button>
 <button class="tab" data-screen="calendar">Calendar</button>
 <button class="tab" data-screen="contacts">Contacts</button><button class="tab" data-screen="favorites">Favorites</button>
@@ -2161,7 +2161,7 @@ function renderQa(){
  if(!qaReport.failures.length&&!qaReport.warnings.length){const item=document.createElement("div");item.className="qa-item";item.textContent="No dataset issues detected.";list.appendChild(item)}
 }
 function exportQa(){if(!qaReport)runDatasetQa();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(qaReport,null,2)],{type:"application/json"}));a.download="Daily_Inspiration_v2_3_QA_Report.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===id));document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.screen===id));if(id==="calendar")renderCalendar();if(id==="contacts")renderContacts();if(id==="favorites")renderFavorites();if(id==="history")renderHistory();if(id==="qa"&&!qaReport)runDatasetQa()}
+function show(id){if(id==="greeting"||id==="contacts")id="studio";document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===id));document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.screen===id));if(id==="calendar")renderCalendar();if(id==="contacts")renderContacts();if(id==="favorites")renderFavorites();if(id==="history")renderHistory();if(id==="qa"&&!qaReport)runDatasetQa()}
 
 
 

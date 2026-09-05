@@ -1,4 +1,4 @@
-const CACHE = "daily-inspiration-v2-3-2-independent-pwa-v1";
+const CACHE = "daily-inspiration-v2-3-2-independent-pwa-v2";
 const FILES = [
   "./",
   "./index.html",
