@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#171b48">
-<title>Daily Inspiration v2.3.2 VIP FAMILY CANDIDATE</title>
+<title>India Inspiration Studio — Daily Inspiration</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -131,8 +131,8 @@ details.accordion-item .accordion-body{padding:14px}
 </head>
 <body>
 <div class="app">
-<header class="top"><div><h1>Daily Inspiration</h1><p class="subtitle">Today's Inspiration</p></div><div class="version">Daily Inspiration v2.3.2 VIP FAMILY CANDIDATE</div></header>
-<nav class="tabs">
+<header class="top"><div><h1>Daily Inspiration</h1><p class="subtitle">Today's Inspiration</p></div><div class="version">India Inspiration Studio — Daily Inspiration</div></header>
+<style>/* Independent Daily Poster deployment navigation. */ .tab[data-screen="greeting"]{display:none}</style><nav class="tabs">
 <button class="tab active" data-screen="studio">Daily Poster</button><button class="tab" data-screen="greeting">Personal Greeting</button>
 <button class="tab" data-screen="calendar">Calendar</button>
 <button class="tab" data-screen="contacts">Contacts</button><button class="tab" data-screen="favorites">Favorites</button>
@@ -355,8 +355,8 @@ details.accordion-item .accordion-body{padding:14px}
 <script>
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    for (let reg of regs) { reg.update(); }
+  navigator.serviceWorker.getRegistration(new URL("./", location.href).href).then(reg => {
+    if (reg && reg.scope === new URL("./", location.href).href) { reg.update(); }
   });
 }
 
