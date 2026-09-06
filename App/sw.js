@@ -1,7 +1,18 @@
-const CACHE = "daily-inspiration-v2-3-2-independent-pwa-v2";
+const CACHE = "daily-inspiration-v2-3-2-independent-pwa-canva-v1";
 const FILES = [
   "./",
   "./index.html",
+  "./canva-template.js",
+  "./artwork/Canva/patience.png",
+  "./artwork/Canva/community.png",
+  "./artwork/Canva/rose.png",
+  "./artwork/Canva/gandhi.png",
+  "./artwork/Canva/vagh-baras.png",
+  "./artwork/Canva/annakut.png",
+  "./artwork/Canva/gujarati-new-year.png",
+  "./artwork/Canva/christmas.png",
+  "./artwork/Canva/new-year-eve.png",
+  "./artwork/Canva/service.png",
   "./manifest.webmanifest",
   "./data/content.js",
   "./assets/icon-192.png",

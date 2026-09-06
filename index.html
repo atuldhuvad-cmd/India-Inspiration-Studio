@@ -208,7 +208,8 @@ details.accordion-item .accordion-body{padding:14px}
 </section>
 <section class="preview">
 <div id="posterQuickChips" class="poster-quick-chips">
-<button class="chip active" data-style="Auto Theme">Auto</button>
+<button class="chip" data-style="Auto Theme">Auto</button>
+<button class="chip active" data-style="Canva">Canva</button>
 <button class="chip" data-style="Modern Glassmorphic">Minimal</button>
 <button class="chip" data-style="Hero Focus">Human</button>
 <button class="chip" data-style="Sacred Arch">Arch</button>
@@ -352,6 +353,7 @@ details.accordion-item .accordion-body{padding:14px}
 </div><div id="toast" class="toast"></div>
 
 <script src="data/content.js"></script>
+<script src="canva-template.js"></script>
 <script>
 
 if ('serviceWorker' in navigator) {
@@ -780,6 +782,7 @@ function getThemePhotoImage() {
 
 // 10 COMPOSITION STYLES + AUTO THEME
 const STYLES = [
+  "Canva",
   "Auto Theme",
   "Modern Glassmorphic",
   "Hero Focus",
@@ -1916,7 +1919,8 @@ function render() {
 
   let fits = { en: { lines: [] } };
   try {
-    if (styleName === "Sacred Arch") fits = renderSacredArch(p);
+    if (styleName === "Canva") fits = renderCanva();
+    else if (styleName === "Sacred Arch") fits = renderSacredArch(p);
     else if (styleName === "Cinematic Editorial") fits = renderCinematicEditorial(p);
     else if (styleName === "Neon") fits = renderNeonTheme(p);
     else if (styleName === "Monumental Typography") fits = renderMonumentalTypography(p);
@@ -1943,6 +1947,7 @@ function render() {
   if ($("download")) $("download").disabled = false;
   if ($("sharePoster")) $("sharePoster").disabled = false;
   if ($("status")) $("status").textContent = "Generated \u2022 " + styleName + " \u2022 1080 \u00d7 1920";
+  if(styleName === "Canva" && !window.__canvaMetrics?.ok){generatedKey="";$("download").disabled=true;$("sharePoster").disabled=true;$("status").textContent=window.__canvaMetrics?.ready?"Text does not fit — shorten the message.":"Waiting for artwork — export unavailable.";}
   syncStyleChips();
   } finally {
     _rendering = false;
@@ -2066,11 +2071,11 @@ async function runScheduledCleanup(){
   }
 }
 
-function preferences(){return store.get("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Classic Inspiration"})}
+function preferences(){const p=store.get("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold"});return p.canvaDefaultVersion===1?p:{...p,style:"Canva"}}
 function applyPreferences(){const p=preferences();$("signature").value = p.signature !== undefined ? p.signature : "Dr. Atul";if(PALETTES[p.palette])palette=p.palette;$("style").value=resolveVisibleStyle(p.style)}
 function populateSettings(){const p=preferences();$("defaultSignature").value = p.signature !== undefined ? p.signature : "Dr. Atul";clearNode($("defaultPalette"));Object.keys(PALETTES).forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultPalette").appendChild(o)});clearNode($("defaultStyle"));STYLES.forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultStyle").appendChild(o)});$("defaultPalette").value=p.palette||"Festival Gold";$("defaultStyle").value=resolveVisibleStyle(p.style)}
-function savePreferences(){const p={signature:$("defaultSignature").value.trim(),palette:$("defaultPalette").value,style:$("defaultStyle").value};store.set("daily-inspiration-preferences",p);$("signature").value=p.signature;palette=p.palette;$("style").value=p.style;syncPalette();invalidate();render();showToast("Preferences saved")}
-function resetPreferences(){store.set("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Classic Inspiration"});populateSettings();applyPreferences();syncPalette();invalidate();render();showToast("Preferences reset")}
+function savePreferences(){const p={canvaDefaultVersion:1,signature:$("defaultSignature").value.trim(),palette:$("defaultPalette").value,style:$("defaultStyle").value};store.set("daily-inspiration-preferences",p);$("signature").value=p.signature;palette=p.palette;$("style").value=p.style;syncPalette();invalidate();render();showToast("Preferences saved")}
+function resetPreferences(){store.set("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Canva",canvaDefaultVersion:1});populateSettings();applyPreferences();syncPalette();invalidate();render();showToast("Preferences reset")}
 function loadCleanupSettings(){
   if(!$("cleanupMode"))return;
   $("cleanupMode").value=localStorage.getItem("daily-inspiration-cleanup-mode")||"off";
@@ -2127,7 +2132,7 @@ function getTodayDatasetDate(){
   }
   return DATASET[0].Date;
 }
-function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;if($("occasionGu"))$("occasionGu").value=rec.Occasion_Gujarati||"";$("messageEn").value=removeWeekdayReference(rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=resolveVisibleStyle(rec.Style);$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
+function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;if($("occasionGu"))$("occasionGu").value=rec.Occasion_Gujarati||"";$("messageEn").value=removeWeekdayReference(preferences().style==="Canva"?canvaDefaultMessage(rec):rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=resolveVisibleStyle(preferences().style);$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
 function syncPalette(){document.querySelectorAll(".swatch").forEach(b=>b.classList.toggle("active",b.dataset.p===palette))}
 function setArtwork(file){if(!file)return;const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);img._url=url;artworkImage=img;artworkId=`${file.name}:${file.size}:${file.lastModified}`;clearNode($("artworkPreview"));const p=document.createElement("img");p.src=url;$("artworkPreview").appendChild(p);$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();render()};img.onerror=()=>{URL.revokeObjectURL(url);alert("Unable to load this image.")};img.src=url}
 function clearArtwork(doRender=true){if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);artworkImage=null;artworkId="none";$("artworkPreview").textContent="No local artwork selected";$("artworkFile").value="";$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();if(doRender)render()}
