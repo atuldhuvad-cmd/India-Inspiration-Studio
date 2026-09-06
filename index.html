@@ -2071,11 +2071,11 @@ async function runScheduledCleanup(){
   }
 }
 
-function preferences(){const p=store.get("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold"});return p.canvaDefaultVersion===1?p:{...p,style:"Canva"}}
+function preferences(){const p=store.get("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold"});return p.canvaDefaultVersion===2?p:{...p,style:"Canva"}}
 function applyPreferences(){const p=preferences();$("signature").value = p.signature !== undefined ? p.signature : "Dr. Atul";if(PALETTES[p.palette])palette=p.palette;$("style").value=resolveVisibleStyle(p.style)}
 function populateSettings(){const p=preferences();$("defaultSignature").value = p.signature !== undefined ? p.signature : "Dr. Atul";clearNode($("defaultPalette"));Object.keys(PALETTES).forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultPalette").appendChild(o)});clearNode($("defaultStyle"));STYLES.forEach(name=>{const o=document.createElement("option");o.value=o.textContent=name;$("defaultStyle").appendChild(o)});$("defaultPalette").value=p.palette||"Festival Gold";$("defaultStyle").value=resolveVisibleStyle(p.style)}
-function savePreferences(){const p={canvaDefaultVersion:1,signature:$("defaultSignature").value.trim(),palette:$("defaultPalette").value,style:$("defaultStyle").value};store.set("daily-inspiration-preferences",p);$("signature").value=p.signature;palette=p.palette;$("style").value=p.style;syncPalette();invalidate();render();showToast("Preferences saved")}
-function resetPreferences(){store.set("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Canva",canvaDefaultVersion:1});populateSettings();applyPreferences();syncPalette();invalidate();render();showToast("Preferences reset")}
+function savePreferences(){const p={canvaDefaultVersion:2,signature:$("defaultSignature").value.trim(),palette:$("defaultPalette").value,style:$("defaultStyle").value};store.set("daily-inspiration-preferences",p);$("signature").value=p.signature;palette=p.palette;$("style").value=p.style;syncPalette();invalidate();render();showToast("Preferences saved")}
+function resetPreferences(){store.set("daily-inspiration-preferences",{signature:"Dr. Atul",palette:"Festival Gold",style:"Canva",canvaDefaultVersion:2});populateSettings();applyPreferences();syncPalette();invalidate();render();showToast("Preferences reset")}
 function loadCleanupSettings(){
   if(!$("cleanupMode"))return;
   $("cleanupMode").value=localStorage.getItem("daily-inspiration-cleanup-mode")||"off";
