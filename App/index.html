@@ -2132,6 +2132,16 @@ function getTodayDatasetDate(){
   }
   return DATASET[0].Date;
 }
+function scheduleDailyPosterRollover(){
+  const localToday=getLocalDateString();
+  const nextMidnight=new Date();
+  nextMidnight.setHours(24,0,2,0);
+  const delay=Math.max(1000,nextMidnight.getTime()-Date.now());
+  setTimeout(()=>{
+    if($("date")&&$("date").value===localToday)load(getTodayDatasetDate());
+    scheduleDailyPosterRollover();
+  },delay);
+}
 function load(d){rec=DATASET.find(x=>x.Date===d)||DATASET[0];$("date").value=rec.Date;$("occasionEn").value=rec.Occasion_English;if($("occasionGu"))$("occasionGu").value=rec.Occasion_Gujarati||"";$("messageEn").value=removeWeekdayReference(preferences().style==="Canva"?canvaDefaultMessage(rec):rec.Message_English,"en");if($("messageGu"))$("messageGu").value=removeWeekdayReference(rec.Message_Gujarati||"","gu");palette=PALETTES[rec.Palette]?rec.Palette:"Festival Gold";$("style").value=resolveVisibleStyle(preferences().style);$("context").textContent=rec.Cultural_Context;$("emotion").textContent=rec.Emotion||rec.Visual_Mood;$("category").textContent=rec.Category;$("why").textContent=rec.Why_This_Day;$("why").classList.remove("show");clearArtwork(false);syncPalette();applyCustomIfAny();updateEditorMetrics();invalidate();render();updateFavoriteButton()}
 function syncPalette(){document.querySelectorAll(".swatch").forEach(b=>b.classList.toggle("active",b.dataset.p===palette))}
 function setArtwork(file){if(!file)return;const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{if(artworkImage&&artworkImage._url)URL.revokeObjectURL(artworkImage._url);img._url=url;artworkImage=img;artworkId=`${file.name}:${file.size}:${file.lastModified}`;clearNode($("artworkPreview"));const p=document.createElement("img");p.src=url;$("artworkPreview").appendChild(p);$("artworkZoom").value="1";$("artworkFocus").value="0";invalidate();render()};img.onerror=()=>{URL.revokeObjectURL(url);alert("Unable to load this image.")};img.src=url}
@@ -3852,7 +3862,7 @@ onEl("runQa","click",runDatasetQa);
 onEl("exportQa","click",exportQa);
 ["search","monthFilter","categoryFilter","contextFilter"].forEach(id=>onEl(id,"input",renderCalendar));
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.screen));
-applyPreferences();load(getTodayDatasetDate());renderFavorites();renderHistory();populateSettings();loadCleanupSettings();runScheduledCleanup();
+applyPreferences();load(getTodayDatasetDate());scheduleDailyPosterRollover();renderFavorites();renderHistory();populateSettings();loadCleanupSettings();runScheduledCleanup();
 if("serviceWorker"in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
 function associateLabels(){document.querySelectorAll("label").forEach((label,index)=>{if(label.htmlFor)return;const control=label.querySelector("input,select,textarea,button")||label.parentElement?.querySelector("input,select,textarea,button");if(!control)return;if(!control.id)control.id="label-control-"+index;label.htmlFor=control.id})}
 document.addEventListener("DOMContentLoaded",()=>{associateLabels();init();initGreeting();initContacts();updatePhotoControls()});
