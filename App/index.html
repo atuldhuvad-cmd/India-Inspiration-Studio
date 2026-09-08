@@ -2810,11 +2810,6 @@ function gPalette(){
   if (typeof GREETING_PALETTES !== "undefined" && GREETING_PALETTES[d]) return GREETING_PALETTES[d];
   return { a: "#8E2E21", b: "#C75E22", soft: "#FFF8EA", accent: "#8E2E21", gold: "#E5B85D", ink: "#381D15" };
 }
-function dbgGreet(hypothesisId,location,message,data){
-  // #region agent log
-  fetch('http://127.0.0.1:7260/ingest/e650ad6d-f41b-4074-b68b-d81adb0789d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5b77db'},body:JSON.stringify({sessionId:'5b77db',runId:'pre-fix',hypothesisId:hypothesisId,location:location,message:message,data:data,timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-}
 function gRectsOverlap(r1,r2,gap){gap=gap==null?15:gap;return!(r1.x+r1.w+gap<=r2.x||r2.x+r2.w+gap<=r1.x||r1.y+r1.h+gap<=r2.y||r2.y+r2.h+gap<=r1.y)}
 function greetingTextBoxForPhoto(photo, panel, gap) {
   gap = gap == null ? 20 : gap;
@@ -3352,7 +3347,6 @@ function renderPremiumPortraitSplit(title, message, date, signature, style) {
     const focusY = Number($("gPhotoFocus").value);
     drawGreetingPhoto({ px: px, py: py, pw: pw, ph: ph, radius: radius, isCircle: isCircle }, "#D4AF37", zoom, focusX, focusY);
     // #region agent log
-    dbgGreet('H3','App/index.html:renderPremiumPortraitSplit:photo','VIP/split photo reserved and painted before text',{path:'renderPremiumPortraitSplit',paintOrder:['photo','text'],photoStyle:photoStyle,photoRect:{x:px,y:py,w:pw,h:ph},textPanel:{x:leftPanelX,y:70,w:leftPanelWidth,h:1210},overlaps:gRectsOverlap({x:px,y:py,w:pw,h:ph},{x:leftPanelX,y:70,w:leftPanelWidth,h:1210})});
     // #endregion
   } else if (photoStyle !== "none") {
     gCtx.save();
@@ -3441,7 +3435,6 @@ function renderPremiumPortraitSplit(title, message, date, signature, style) {
   gCtx.font = "700 34px Georgia";
   gCtx.fillText(signature, centerX, sigY);
   // #region agent log
-  dbgGreet('H3','App/index.html:renderPremiumPortraitSplit:text','VIP/split text painted after reserved photo',{path:'renderPremiumPortraitSplit',paintOrder:['photo','text'],msgY:my,msgBottomY:msgBottomY,sigY:sigY,centerX:centerX,msgLen:(message||'').length});
   // #endregion
 
   drawPremiumSplitDecorations(gCtx, $("gOccasion").value);
@@ -3529,7 +3522,6 @@ function gRender(){
   if(hasPhoto&&plan.photo){
     drawGreetingPhoto(plan.photo,style.accent,Number($("gPhotoZoom").value),Number($("gPhotoFocusX").value),Number($("gPhotoFocus").value));
     // #region agent log
-    dbgGreet('H1','App/index.html:gRender:photo','gRender photo painted before text',{path:'gRender',runId:'post-fix',design:gDesign,photoStyle:photoStyle,styleUsed:plan.styleUsed,warning:plan.warning,photoRect:{x:plan.photo.px,y:plan.photo.py,w:plan.photo.pw,h:plan.photo.ph},textBox:textBox,paintOrder:['photo','text']});
     // #endregion
   }
 
@@ -3614,7 +3606,6 @@ function gRender(){
     const sigBox={x:textCenterX-sigW/2-15,y:warmY-20,w:sigW+30,h:sigY-warmY+50};
     const photoRect=plan.photo?{x:plan.photo.px,y:plan.photo.py,w:plan.photo.pw,h:plan.photo.ph}:null;
     const stillHits=!!(photoRect&&(gRectsOverlap(photoRect,msgBox)||gRectsOverlap(photoRect,sigBox)));
-    dbgGreet(stillHits?'H2':'H4','App/index.html:gRender:text','gRender text painted after reserved photo',{path:'gRender',runId:'post-fix',design:gDesign,photoStyle:photoStyle,styleUsed:plan.styleUsed,warning:plan.warning,paintOrder:['photo','text'],stillHits:stillHits,photoRect:photoRect,msgBox:msgBox,sigBox:sigBox,msgLen:(message||'').length});
   })();
   // #endregion
 
